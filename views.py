@@ -139,3 +139,58 @@ def add_transaction_route():
         'message': f'{len(filtered_transactions_to_add)} transações foram validadas, filtradas e serão adicionadas ao Bloco {index}'
     }
     return jsonify(response), 201
+
+# Adicione esta rota ao final do seu arquivo views.py
+
+@api_blueprint.route('/edit_block_test', methods=['POST'])
+def edit_block_test():
+    """
+    ===================================================================
+    == ATENÇÃO: ESTA FUNÇÃO É APENAS PARA FINS DE TESTE EDUCACIONAL ==
+    == ELA QUEBRA PROPOSITALMENTE A INTEGRIDADE DA BLOCKCHAIN.       ==
+    ===================================================================
+    """
+    json_data = request.get_json()
+    
+    # Pega os parâmetros da requisição
+    block_index = json_data.get('block_index')
+    new_transaction = json_data.get('new_transaction')
+    
+    # Validação simples da requisição
+    if block_index is None or new_transaction is None:
+        return jsonify({'error': 'Os campos "block_index" e "new_transaction" são obrigatórios.'}), 400
+        
+    # Verifica se o índice do bloco é válido
+    if not isinstance(block_index, int) or block_index >= len(blockchain.chain) or block_index < 0:
+        return jsonify({'error': f'Índice de bloco inválido. A blockchain tem {len(blockchain.chain)} blocos (índices de 0 a {len(blockchain.chain) - 1}).'}), 400
+        
+    # --- O ATO DA "SABOTAGEM" ---
+    # Altera diretamente a lista de transações de um bloco já existente.
+    # Isso é algo que NUNCA se deve fazer.
+    print(f"--- INICIANDO TESTE DE SABOTAGEM NO BLOCO {block_index} ---")
+    original_block = blockchain.chain[block_index].copy()
+    blockchain.chain[block_index]['transactions'] = [new_transaction]
+    edited_block = blockchain.chain[block_index]
+    print(f"Bloco Original: {original_block}")
+    print(f"Bloco Editado: {edited_block}")
+    
+    # --- A CONSEQUÊNCIA ---
+    # Imediatamente após a edição, verificamos a validade da cadeia
+    is_now_valid = blockchain.is_chain_valid(blockchain.chain)
+    
+    message = "A blockchain foi SABOTADA com sucesso!"
+    if is_now_valid:
+        # Este caso é teoricamente impossível de acontecer se a lógica estiver correta.
+        conclusion = "Incrivelmente, a cadeia ainda se reporta como válida. Verifique a lógica de is_chain_valid."
+    else:
+        conclusion = "Como esperado, a função is_chain_valid AGORA REPORTA a cadeia como INVÁLIDA."
+
+    response = {
+        'message': message,
+        'conclusion': conclusion,
+        'block_edited_index': block_index,
+        'block_content_after_edit': edited_block,
+        'is_chain_still_valid': is_now_valid
+    }
+    
+    return jsonify(response), 200
