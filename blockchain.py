@@ -31,7 +31,7 @@ class Blockchain:
         """
         block = {
             'index': len(self.chain) + 1,
-            'timestamp': str(datetime.datetime.now()),
+            'timestamp': str(datetime.datetime.now(datetime.timezone.utc)),
             'proof': proof,
             'previous_hash': previous_hash,
             'transactions': self.transactions
@@ -84,7 +84,7 @@ class Blockchain:
             ).hexdigest()
             
             # Verifica se o hash atende à condição de dificuldade
-            if hash_operation[:4] == '0000':
+            if hash_operation[:7] == '0000000':
                 check_proof = True
             else:
                 new_proof += 1
@@ -128,7 +128,7 @@ class Blockchain:
             hash_operation = hashlib.sha256(
                 str(proof**2 - previous_proof**2).encode()
             ).hexdigest()
-            if hash_operation[:4] != '0000':
+            if hash_operation[:7] != '0000000':
                 return False
             
             previous_block = block
