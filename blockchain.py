@@ -8,37 +8,49 @@ class Blockchain:
     """
     Classe que representa a estrutura e as operações do Blockchain.
     """
+    
+    # 1. SUBSTITUA SEU __init__ POR ESTE
     def __init__(self):
-        """
-        Inicializa o blockchain com uma lista vazia para a cadeia e transações,
-        e cria o bloco gênesis.
-        """
         self.chain = []
         self.transactions = []
-        # Cria o Bloco Gênesis
-        self.create_block(proof=1, previous_hash='0')
+        # Tenta carregar a cadeia do disco
+        self.load_chain_from_disk()
 
+    # 2. ADICIONE ESTES DOIS NOVOS MÉTODOS À SUA CLASSE
+    def load_chain_from_disk(self):
+        """Carrega a blockchain de um arquivo JSON, se existir."""
+        try:
+            with open('blockchain_data.json', 'r') as f:
+                self.chain = json.load(f)
+            # Se o arquivo estava vazio ou corrompido
+            if not self.chain:
+                print("Arquivo encontrado, mas vazio. Criando Bloco Gênesis.")
+                self.create_block(proof=1, previous_hash='0')
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("Nenhum arquivo de blockchain encontrado. Criando Bloco Gênesis.")
+            self.create_block(proof=1, previous_hash='0')
+
+    def save_chain_to_disk(self):
+        """Salva a blockchain atual em um arquivo JSON."""
+        with open('blockchain_data.json', 'w') as f:
+            json.dump(self.chain, f, indent=4)
+
+    # 3. MODIFIQUE SEU create_block PARA CHAMAR O MÉTODO DE SALVAR
     def create_block(self, proof, previous_hash):
-        """
-        Cria um novo bloco e o adiciona à cadeia.
-
-        Args:
-            proof (int): A prova de trabalho do novo bloco.
-            previous_hash (str): O hash do bloco anterior.
-
-        Returns:
-            dict: O novo bloco criado.
-        """
+        # ... (toda a lógica que você já tem para criar o 'block') ...
         block = {
             'index': len(self.chain) + 1,
-            'timestamp': str(datetime.datetime.now(datetime.timezone.utc)),
+            'timestamp': str(datetime.datetime.now()),
             'proof': proof,
             'previous_hash': previous_hash,
             'transactions': self.transactions
         }
-        # Limpa a lista de transações, pois elas já foram incluídas no bloco
         self.transactions = []
         self.chain.append(block)
+        
+        # A LINHA MÁGICA:
+        self.save_chain_to_disk() # Salva toda vez que um bloco é criado
+
         return block
 
     def get_previous_block(self):
@@ -84,7 +96,7 @@ class Blockchain:
             ).hexdigest()
             
             # Verifica se o hash atende à condição de dificuldade
-            if hash_operation[:7] == '0000000':
+            if hash_operation[:4] == '0000':
                 check_proof = True
             else:
                 new_proof += 1
@@ -128,7 +140,7 @@ class Blockchain:
             hash_operation = hashlib.sha256(
                 str(proof**2 - previous_proof**2).encode()
             ).hexdigest()
-            if hash_operation[:7] != '0000000':
+            if hash_operation[:4] != '0000':
                 return False
             
             previous_block = block
