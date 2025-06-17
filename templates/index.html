@@ -8,14 +8,35 @@
 </head>
 <body>
     <div class="api-container">
-        <h1>Bem-vindo à API da Blockchain!</h1>
-        <p>Explore os endpoints disponíveis para interagir com a blockchain.</p>
+        <h1>Painel de Controle da Blockchain</h1>
+        <p>Use os botões abaixo para interagir com a rede da blockchain.</p>
 
         <div class="interaction-section">
-            <h2>Testar a API</h2>
+            <h2>Ações da Rede</h2>
+
+            <label for="node-address-input"><strong>Endereço do Nó para Conectar:</strong></label>
+            <input type="text" id="node-address-input" placeholder="Ex: 127.0.0.1:5002" style="width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 20px;">
+            
+            <div class="action-buttons">
+                <button onclick="connectNode()"><span class="method method-post">POST</span> /connect_node</button>
+                <button onclick="fetchAPI('/consensus', 'GET')"><span class="method method-get">GET</span> /consensus</button>
+            </div>
+        </div>
+
+        <div class="interaction-section">
+            <h2>Ações da Blockchain</h2>
             
             <label for="json-input"><strong>Payload da Transação (JSON):</strong></label>
-            <textarea id="json-input" placeholder='{&#10;    "sender": "seu-endereco",&#10;    "receiver": "endereco-destinatario",&#10;    "amount": 10&#10;}'></textarea>
+            <textarea id="json-input" placeholder='{
+    "id": 42,
+    "name": "Capture to Extract Input",
+    "engine": "DefaultEngine",
+    "converter": {
+        "id": 1,
+        "code": "cap_to_ext",
+        "name": "Capture to Extract Input"
+    }
+}'></textarea>
 
             <div class="action-buttons">
                 <button onclick="fetchAPI('/get_chain', 'GET')"><span class="method method-get">GET</span> /get_chain</button>
@@ -32,9 +53,6 @@
     <script>
         /**
          * Função genérica para fazer requisições à API.
-         * @param {string} endpoint - O endpoint da API a ser chamado.
-         * @param {string} method - O método HTTP (GET, POST, etc.).
-         * @param {object} body - O corpo da requisição (para métodos como POST).
          */
         async function fetchAPI(endpoint, method, body = null) {
             const responseContainer = document.getElementById('api-response');
@@ -54,7 +72,6 @@
                 const response = await fetch(endpoint, options);
                 const data = await response.json();
 
-                // Formata o JSON para exibição bonita
                 responseContainer.textContent = JSON.stringify(data, null, 4);
 
             } catch (error) {
@@ -65,7 +82,6 @@
 
         /**
          * Função específica para adicionar uma nova transação.
-         * Ela lê o conteúdo do textarea, valida o JSON e envia para a API.
          */
         function addTransaction() {
             const jsonInput = document.getElementById('json-input').value;
@@ -78,11 +94,34 @@
 
             try {
                 const transactionData = JSON.parse(jsonInput);
+                // O backend espera um objeto com a chave "transactions" contendo uma lista
                 fetchAPI('/add_transaction', 'POST', { transactions: [transactionData] });
             } catch (error) {
                 console.error('Erro ao parsear JSON:', error);
                 responseContainer.textContent = `Erro: JSON inválido. Verifique a sintaxe.\n\nDetalhes: ${error.message}`;
             }
+        }
+
+        /**
+         * NOVO: Função para conectar um nó à rede.
+         */
+        function connectNode() {
+            const nodeAddressInput = document.getElementById('node-address-input');
+            const responseContainer = document.getElementById('api-response');
+            const nodeAddress = nodeAddressInput.value.trim();
+
+            if (!nodeAddress) {
+                responseContainer.textContent = 'Erro: O endereço do nó não pode estar vazio.';
+                return;
+            }
+
+            // O backend espera um objeto com a chave "nodes" contendo uma lista de endereços
+            const body = {
+                nodes: [nodeAddress]
+            };
+
+            fetchAPI('/connect_node', 'POST', body);
+            nodeAddressInput.value = ''; // Limpa o campo após o envio
         }
     </script>
 </body>

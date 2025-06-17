@@ -3,6 +3,8 @@
 import datetime
 import hashlib
 import json
+import requests
+from urllib.parse import urlparse
 
 class Blockchain:
     """
@@ -13,6 +15,7 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.transactions = []
+        self.nodes = set()
         # Tenta carregar a cadeia do disco
         self.load_chain_from_disk()
 
@@ -147,3 +150,58 @@ class Blockchain:
             block_index += 1
             
         return True
+    
+    def register_node(self, address):
+        """
+        Adiciona um novo nó à lista de nós.
+
+        Args:
+            address (str): Endereço do nó. Ex: 'http://192.168.0.5:5000'
+        """
+        parsed_url = urlparse(address)
+        if parsed_url.netloc:
+            self.nodes.add(parsed_url.netloc)
+        elif parsed_url.path:
+            # Aceita endereços como '192.168.0.5:5000'
+            self.nodes.add(parsed_url.path)
+        else:
+            raise ValueError('URL inválido')
+
+    def resolve_conflicts(self):
+        """
+        Este é o nosso Algoritmo de Consenso. Ele resolve conflitos
+        substituindo nossa cadeia pela mais longa da rede.
+
+        Returns:
+            bool: True se nossa cadeia foi substituída, False se não.
+        """
+        neighbours = self.nodes
+        new_chain = None
+
+        # Estamos apenas procurando por cadeias mais longas que a nossa
+        max_length = len(self.chain)
+
+        # Pega e verifica as cadeias de todos os nós na nossa rede
+        for node in neighbours:
+            try:
+                response = requests.get(f'http://{node}/get_chain')
+                if response.status_code == 200:
+                    length = response.json()['length']
+                    chain = response.json()['chain']
+
+                    # Verifica se o tamanho é maior e se a cadeia é válida
+                    if length > max_length and self.is_chain_valid(chain):
+                        max_length = length
+                        new_chain = chain
+            except requests.exceptions.RequestException as e:
+                print(f"Não foi possível conectar ao nó {node}: {e}")
+                continue
+
+
+        # Substitui nossa cadeia se descobrirmos uma nova cadeia válida e mais longa
+        if new_chain:
+            self.chain = new_chain
+            self.save_chain_to_disk() # Salva a nova cadeia no disco
+            return True
+
+        return False

@@ -1,25 +1,30 @@
 # cryptocurrency/main.py
 
 from flask import Flask
-from blockchain import Blockchain  # <-- ALTERAÇÃO AQUI
+from argparse import ArgumentParser # <-- 1. IMPORTE ArgumentParser
+from blockchain import Blockchain
 from views import api_blueprint, set_blockchain
 
-# 1. Cria a instância da aplicação Flask
+# Cria a instância da aplicação Flask
 app = Flask(__name__)
 
-# 2. Cria a instância do Blockchain
+# Cria a instância do Blockchain
 blockchain_instance = Blockchain()
 
-# 3. Injeta a instância do blockchain no blueprint das rotas
-#    Isso permite que as rotas em 'views.py' acessem o mesmo objeto blockchain.
+# Injeta a instância do blockchain no blueprint das rotas
 set_blockchain(blockchain_instance)
 
-# 4. Registra o blueprint na aplicação Flask
-#    Todas as rotas definidas em 'api_blueprint' agora fazem parte da aplicação.
+# Registra o blueprint na aplicação Flask
 app.register_blueprint(api_blueprint)
 
-# 5. Executa a aplicação
+# 2. MODIFIQUE O BLOCO DE EXECUÇÃO
 if __name__ == '__main__':
+    # Configura o parser para aceitar argumentos de linha de comando
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--port', default=5000, type=int, help='Porta para escutar')
+    args = parser.parse_args()
+    port = args.port
+
     # O host '0.0.0.0' torna a aplicação acessível na sua rede local.
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)
     

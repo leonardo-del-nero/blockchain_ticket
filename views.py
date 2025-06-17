@@ -194,3 +194,41 @@ def edit_block_test():
     }
     
     return jsonify(response), 200
+
+@api_blueprint.route('/connect_node', methods=['POST'])
+def connect_node():
+    """
+    Conecta este nó a outros nós da rede.
+    """
+    json_data = request.get_json()
+    nodes = json_data.get('nodes')
+    if nodes is None:
+        return "Erro: Forneça uma lista de nós válida no corpo da requisição.", 400
+
+    for node in nodes:
+        blockchain.register_node(node)
+
+    response = {
+        'message': 'Todos os nós foram conectados. A blockchain agora contém os seguintes nós:',
+        'total_nodes': list(blockchain.nodes),
+    }
+    return jsonify(response), 201
+
+@api_blueprint.route('/consensus', methods=['GET'])
+def consensus():
+    """
+    Executa o algoritmo de consenso para garantir que o nó tem a cadeia correta.
+    """
+    replaced = blockchain.resolve_conflicts()
+
+    if replaced:
+        response = {
+            'message': 'A cadeia foi substituída pela cadeia autoritativa (mais longa).',
+            'new_chain': blockchain.chain
+        }
+    else:
+        response = {
+            'message': 'A cadeia atual já é a autoritativa.',
+            'current_chain': blockchain.chain
+        }
+    return jsonify(response), 200
