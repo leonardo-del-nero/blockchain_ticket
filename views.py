@@ -214,21 +214,3 @@ def connect_node():
     }
     return jsonify(response), 201
 
-@api_blueprint.route('/consensus', methods=['GET'])
-def consensus():
-    """
-    Executa o algoritmo de consenso para garantir que o nó tem a cadeia correta.
-    """
-    replaced = blockchain.resolve_conflicts()
-
-    if replaced:
-        response = {
-            'message': 'A cadeia foi substituída pela cadeia autoritativa (mais longa).',
-            'new_chain': blockchain.chain
-        }
-    else:
-        response = {
-            'message': 'A cadeia atual já é a autoritativa.',
-            'current_chain': blockchain.chain
-        }
-    return jsonify(response), 200
