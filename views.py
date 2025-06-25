@@ -31,6 +31,17 @@ def mine_block():
     """
     Minera um novo bloco, adiciona à cadeia e retorna seus detalhes.
     """
+    # ==================================================================
+    # PASSO ZERO: CONSENSO AUTOMÁTICO ANTES DE MINERAR
+    # Garante que estamos na cadeia mais longa e válida antes de fazer o trabalho.
+    print("Iniciando mineração: Verificando consenso com a rede...")
+    replaced = blockchain.resolve_conflicts()
+    if replaced:
+        print("CONSENSO: Cadeia atualizada. A mineração continuará na nova cadeia.")
+    else:
+        print("CONSENSO: Cadeia local já é a correta. Prosseguindo.")
+    # ==================================================================
+
     previous_block = blockchain.get_previous_block()
     previous_proof = previous_block['proof']
     proof = blockchain.proof_of_work(previous_proof)
@@ -81,6 +92,12 @@ def add_transaction_route():
     Adiciona uma nova transação, filtrando e validando para salvar
     apenas os campos essenciais na blockchain.
     """
+    # ==================================================================
+    # PASSO ZERO: CONSENSO AUTOMÁTICO ANTES DE ADICIONAR TRANSAÇÃO
+    # Garante que o nó está sincronizado com a rede.
+    blockchain.resolve_conflicts()
+    # ==================================================================
+
     json_data = request.get_json()
     
     # 1. Validação inicial: Verifica se o campo 'transactions' existe e é uma lista
@@ -89,6 +106,7 @@ def add_transaction_route():
         error_response = {'error': 'Requisição inválida. O campo "transactions" é obrigatório e deve ser uma lista não vazia.'}
         return jsonify(error_response), 400
     
+    # ... O resto da sua função continua exatamente igual ...
     # Lista para armazenar as transações já filtradas e prontas para o blockchain
     filtered_transactions_to_add = []
 
@@ -213,4 +231,3 @@ def connect_node():
         'total_nodes': list(blockchain.nodes),
     }
     return jsonify(response), 201
-
