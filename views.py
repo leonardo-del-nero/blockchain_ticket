@@ -1,6 +1,7 @@
 # cryptocurrency/views.py
 
 from flask import Blueprint, jsonify, request, render_template
+import requests
 import uuid
 
 # 'api' é o nome do blueprint. Usado para organizar as rotas.
@@ -73,6 +74,74 @@ def get_chain():
         'length': len(blockchain.chain)
     }
     return jsonify(response), 200
+
+# No seu arquivo cryptocurrency/views.py
+# Adicione esta nova rota ao final do arquivo
+
+@api_blueprint.route('/network/chain', methods=['GET'])
+def get_authoritative_chain():
+    """
+    Esta é a rota do "Cliente Inteligente" para o usuário final.
+    Ela executa o seguinte processo:
+    1. Identifica todos os nós na rede, incluindo a si mesmo.
+    2. Pede a cadeia de cada um deles usando a rota /get_chain.
+    3. Compara todas as cadeias recebidas.
+    4. Retorna a cadeia que for a mais longa e válida.
+    """
+    print("Iniciando busca pela cadeia autoritativa em toda a rede...")
+    
+    # 1. Monta a lista de todos os nós que precisamos verificar.
+    # Começamos com uma cópia dos nós registrados.
+    nodes_to_check = blockchain.nodes.copy()
+    # Adicionamos o endereço do próprio nó à lista, para que ele também seja uma fonte.
+    # `request.host` é uma forma prática do Flask obter o endereço do servidor atual.
+    nodes_to_check.add(request.host)
+
+    best_chain = None
+    max_length = len(blockchain.chain) # O tamanho da nossa cadeia local é o recorde a ser batido
+
+    # 2. Faz um loop por cada nó para "entrevistá-lo".
+    for node in nodes_to_check:
+        try:
+            # Pede a cadeia usando a rota simples /get_chain
+            response = requests.get(f'http://{node}/get_chain')
+
+            if response.status_code == 200:
+                data = response.json()
+                length = data['length']
+                chain = data['chain']
+
+                # 3. A VERIFICAÇÃO DUPLA: É mais longa E é válida?
+                # Usamos a lógica de validação do nosso próprio nó para auditar a cadeia recebida.
+                if length > max_length and blockchain.is_chain_valid(chain):
+                    print(f"Encontrada uma cadeia melhor no nó {node} (Tamanho: {length})")
+                    max_length = length
+                    best_chain = chain
+
+        except requests.exceptions.RequestException:
+            print(f"AVISO: Nó {node} está offline ou não respondeu.")
+            continue
+
+    # 4. Determina a resposta final.
+    # Se encontramos uma cadeia melhor na rede, 'best_chain' terá essa cadeia.
+    # Se não, 'best_chain' ainda será None.
+    if best_chain:
+        # Atualiza a cadeia do nosso próprio nó para a versão correta
+        blockchain.chain = best_chain
+        blockchain.save_chain_to_disk()
+        
+        final_response_data = {
+            'message': 'Cadeia autoritativa encontrada na rede e atualizada localmente.',
+            'chain': best_chain
+        }
+        return jsonify(final_response_data), 200
+    else:
+        # Se nenhuma cadeia melhor foi encontrada, a nossa já era a correta.
+        final_response_data = {
+            'message': 'A cadeia local já é a autoritativa.',
+            'chain': blockchain.chain
+        }
+        return jsonify(final_response_data), 200
 
 @api_blueprint.route('/is_valid', methods=['GET'])
 def is_valid():
