@@ -43,7 +43,7 @@ class Blockchain:
         # ... (toda a lógica que você já tem para criar o 'block') ...
         block = {
             'index': len(self.chain) + 1,
-            'timestamp': str(datetime.datetime.now()),
+            'timestamp': f'{datetime.datetime.now(datetime.timezone.utc).isoformat()}',
             'proof': proof,
             'previous_hash': previous_hash,
             'transactions': self.transactions
