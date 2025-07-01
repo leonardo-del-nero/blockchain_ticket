@@ -80,6 +80,7 @@ def get_chain():
 
 @api_blueprint.route('/network/chain', methods=['GET'])
 def get_authoritative_chain():
+    authoritative_node = None
     """
     Esta é a rota do "Cliente Inteligente" para o usuário final.
     Ela executa o seguinte processo:
@@ -114,7 +115,7 @@ def get_authoritative_chain():
                 # 3. A VERIFICAÇÃO DUPLA: É mais longa E é válida?
                 # Usamos a lógica de validação do nosso próprio nó para auditar a cadeia recebida.
                 if length > max_length and blockchain.is_chain_valid(chain):
-                    print(f"Encontrada uma cadeia melhor no nó {node} (Tamanho: {length})")
+                    authoritative_node = f"Encontrada uma cadeia melhor no nó {node} (Tamanho: {length})"
                     max_length = length
                     best_chain = chain
 
@@ -126,12 +127,9 @@ def get_authoritative_chain():
     # Se encontramos uma cadeia melhor na rede, 'best_chain' terá essa cadeia.
     # Se não, 'best_chain' ainda será None.
     if best_chain:
-        # Atualiza a cadeia do nosso próprio nó para a versão correta
-        blockchain.chain = best_chain
-        blockchain.save_chain_to_disk()
         
         final_response_data = {
-            'message': 'Cadeia autoritativa encontrada na rede e atualizada localmente.',
+            'message': f'{authoritative_node}',
             'chain': best_chain
         }
         return jsonify(final_response_data), 200
@@ -300,3 +298,22 @@ def connect_node():
         'total_nodes': list(blockchain.nodes),
     }
     return jsonify(response), 201
+
+@api_blueprint.route('/consensus', methods=['GET'])
+def consensus():
+    """
+    Executa o algoritmo de consenso para garantir que o nó tem a cadeia correta.
+    """
+    replaced = blockchain.resolve_conflicts()
+
+    if replaced:
+        response = {
+            'message': 'A cadeia foi substituída pela cadeia autoritativa (mais longa).',
+            'new_chain': blockchain.chain
+        }
+    else:
+        response = {
+            'message': 'A cadeia atual já é a autoritativa.',
+            'current_chain': blockchain.chain
+        }
+    return jsonify(response), 200
