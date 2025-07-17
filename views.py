@@ -17,15 +17,89 @@ def set_blockchain(blockchain_instance):
     global blockchain
     blockchain = blockchain_instance
 
+# --- Funções Auxiliares ---
+
+def search_recursively(data, term_to_find):
+    """
+    Função auxiliar que busca recursivamente por um termo em um dicionário ou lista.
+    """
+    term_to_find = str(term_to_find).lower()
+
+    # Se 'data' for um dicionário (objeto JSON)
+    if isinstance(data, dict):
+        for key, value in data.items():
+            # Compara o valor do dicionário com o termo de busca
+            if str(value).lower() == term_to_find:
+                return True
+            # Se o valor for outro dicionário ou uma lista, chama a função recursivamente
+            if isinstance(value, (dict, list)):
+                if search_recursively(value, term_to_find):
+                    return True
+    
+    # Se 'data' for uma lista
+    elif isinstance(data, list):
+        for item in data:
+            # Compara o item da lista com o termo de busca
+            if str(item).lower() == term_to_find:
+                return True
+            # Se o item for outro dicionário ou uma lista, chama a função recursivamente
+            if isinstance(item, (dict, list)):
+                if search_recursively(item, term_to_find):
+                    return True
+    
+    # Se não encontrar, retorna False
+    return False
+
+
 # --- Rotas da API ---
 
 @api_blueprint.route('/', methods=['GET'])
 def home():
     """
     Rota para a página inicial com a interface de teste da API.
-    (Você precisa ter um 'index.html' na pasta 'templates')
     """
     return render_template('index.html') 
+
+# ==================================================================
+# ROTA DE PESQUISA ATUALIZADA (BUSCA UNIVERSAL)
+# ==================================================================
+@api_blueprint.route('/search', methods=['GET'])
+def search_transactions():
+    """
+    Busca por um termo em qualquer lugar dentro das transações na blockchain.
+    Exemplo de uso: /search?q=termo_a_buscar
+    """
+    # Pega o parâmetro de busca 'q' da URL
+    query_term = request.args.get('q')
+
+    if not query_term:
+        return jsonify({'error': 'Parâmetro de busca "q" é obrigatório.'}), 400
+
+    found_transactions = []
+
+    # Percorre toda a cadeia de blocos
+    for block in blockchain.chain:
+        # Percorre todas as transações dentro de um bloco
+        for transaction in block['transactions']:
+            # Usa a nova função de busca recursiva
+            if search_recursively(transaction, query_term):
+                # Se encontrar, adiciona a transação e o índice do bloco aos resultados
+                found_transactions.append({
+                    'block_index': block['index'],
+                    'transaction': transaction
+                })
+
+    if not found_transactions:
+        return jsonify({
+            'message': 'Nenhuma transação encontrada contendo o termo fornecido.',
+            'search_term': query_term
+        }), 404
+
+    return jsonify({
+        'message': f'{len(found_transactions)} transação(ões) encontrada(s).',
+        'results': found_transactions
+    }), 200
+# ==================================================================
 
 @api_blueprint.route('/mine_block', methods=['GET'])
 def mine_block():
