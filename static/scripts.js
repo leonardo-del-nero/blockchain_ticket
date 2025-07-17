@@ -20,6 +20,12 @@ async function fetchAPI(endpoint, method, body = null) {
         const response = await fetch(endpoint, options);
         const data = await response.json();
 
+        // Se a resposta tiver um erro, o status code geralmente não é 2xx
+        if (!response.ok) {
+             responseContainer.textContent = `Erro ${response.status}: ${JSON.stringify(data, null, 4)}`;
+             return; // Encerra a função aqui
+        }
+
         responseContainer.textContent = JSON.stringify(data, null, 4);
 
     } catch (error) {
@@ -51,7 +57,7 @@ function addTransaction() {
 }
 
 /**
- * NOVO: Função para conectar um nó à rede.
+ * Função para conectar um nó à rede.
  */
 function connectNode() {
     const nodeAddressInput = document.getElementById('node-address-input');
@@ -70,4 +76,27 @@ function connectNode() {
 
     fetchAPI('/connect_node', 'POST', body);
     nodeAddressInput.value = ''; // Limpa o campo após o envio
+}
+
+
+/**
+ * ==================================================================
+ * FUNÇÃO DE BUSCA ATUALIZADA
+ * ==================================================================
+ */
+function searchBlockchain() {
+    const searchInput = document.getElementById('search-input').value.trim();
+    const responseContainer = document.getElementById('api-response');
+
+    if (!searchInput) {
+        responseContainer.textContent = 'Erro: O campo "Termo de Busca" é obrigatório.';
+        return;
+    }
+
+    // Monta a URL com o parâmetro de query 'q'.
+    // encodeURIComponent garante que caracteres especiais sejam tratados corretamente.
+    const endpoint = `/search?q=${encodeURIComponent(searchInput)}`;
+
+    // Usa a função genérica para fazer a chamada GET
+    fetchAPI(endpoint, 'GET');
 }
