@@ -29,14 +29,16 @@
             
             <label for="json-input"><strong>Payload da Transação (JSON):</strong></label>
             <textarea id="json-input" placeholder='{
-    "id": 42,
-    "name": "Capture to Extract Input",
-    "engine": "DefaultEngine",
-    "converter": {
-        "id": 1,
-        "code": "cap_to_ext",
-        "name": "Capture to Extract Input"
-    }
+    "user_id": "leonardo.delnero",
+    "operation_type": "UPDATE",
+    "table_name": "clientes",
+    "row_identifier": "cliente_42",
+    "changed_fields": [
+      {
+        "column_name": "email",
+        "new_value": "leo.delnero@exemplo.com"
+      }
+    ]
 }'></textarea>
 
             <div class="action-buttons">
@@ -46,10 +48,21 @@
                 <button onclick="fetchAPI('/is_valid', 'GET')"><span class="method method-get">GET</span> /is_valid</button>
                 <button id="post-btn" onclick="addTransaction()"><span class="method method-post">POST</span> /add_transaction</button>
             </div>
-
-            <h3>Resposta da API:</h3>
-            <pre id="api-response">A resposta da sua requisição aparecerá aqui...</pre>
         </div>
+
+        <div class="interaction-section">
+            <h2>Busca Universal na Blockchain</h2>
+            <p>Procure por qualquer valor em qualquer transação.</p>
+
+            <label for="search-input"><strong>Termo de Busca:</strong></label>
+            <input type="text" id="search-input" placeholder="Ex: cliente_42, UPDATE, etc." style="width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 20px;">
+
+            <div class="action-buttons">
+                <button onclick="searchBlockchain()"><span class="method method-get">GET</span> /search</button>
+            </div>
+        </div>
+        <h3>Resposta da API:</h3>
+        <pre id="api-response">A resposta da sua requisição aparecerá aqui...</pre>
     </div>
 
     
